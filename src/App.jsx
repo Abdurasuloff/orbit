@@ -309,6 +309,52 @@ function RatePage({ rates, back }) {
   );
 }
 
+/* ---------- OpenAI (called directly from the browser) ---------- */
+const MODEL = import.meta.env.VITE_OPENAI_MODEL || "gpt-4o";
+const getKey = () => { try { return localStorage.getItem("orbit:key") || import.meta.env.VITE_OPENAI_API_KEY || ""; } catch { return import.meta.env.VITE_OPENAI_API_KEY || ""; } };
+
+async function askAI(system, messages, temperature = 0.3) {
+  const key = getKey();
+  if (!key) throw new Error("NO_KEY");
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: MODEL, temperature, messages: [{ role: "system", content: system }, ...messages] }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401) { try { localStorage.removeItem("orbit:key"); } catch {} throw new Error("BAD_KEY"); }
+  if (!r.ok) throw new Error(d.error?.message || `OpenAI error ${r.status}`);
+  return d.choices[0].message.content.trim();
+}
+
+const TRANSLATE_SYSTEM = `You are a translator for a person living in Korea. Detect the input language.
+- English or Uzbek input: translate into natural, native-sounding Korean, the way a Korean would actually say it in that situation. Use polite 해요체 by default unless the text is clearly casual or formal.
+- Korean input: translate into natural English.
+Return only the translation, no notes or explanations.`;
+
+const TEACHER_SYSTEM = `You are a patient, friendly teacher. Explain things in simple language, as if to a curious 12-year-old.
+- Start with the answer in one or two plain sentences, then explain, with one everyday example or analogy.
+- Avoid jargon. If you must use a technical word, explain it right away.
+- Keep it short (under about 150 words) unless the person asks for more detail.
+- Reply in the same language the person wrote in (English, Uzbek, Korean, etc.).
+- Plain text only: no markdown, no asterisks, no headings. Short paragraphs or simple numbered lines are fine.
+- For follow-up questions, build on the earlier conversation.`;
+
+function KeyCard({ back, note, done }) {
+  const [v, setV] = useState("");
+  const save = () => { if (!v.trim()) return; try { localStorage.setItem("orbit:key", v.trim()); } catch {} done(); };
+  return (
+    <div className="stack page">
+      <button className="back" onClick={back}>‹ Orbit</button>
+      <h2>OpenAI key</h2>
+      <p className="dim" style={{ margin: 0 }}>Paste your OpenAI API key once. It’s saved only on this device and sent only to OpenAI.</p>
+      {note && <div className="err">{note}</div>}
+      <input type="password" value={v} onChange={(e) => setV(e.target.value)} placeholder="sk-…" autoCapitalize="none" autoCorrect="off" />
+      <button onClick={save} disabled={!v.trim()}>Save</button>
+    </div>
+  );
+}
+
 /* ---------- translator ---------- */
 function Translator({ back }) {
   const [text, setText] = useState("");
@@ -316,23 +362,24 @@ function Translator({ back }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
+  const [keyOk, setKeyOk] = useState(!!getKey());
+  const [note, setNote] = useState("");
+  const keyProblem = (e) => {
+    if (e.message !== "BAD_KEY" && e.message !== "NO_KEY") return false;
+    setNote(e.message === "BAD_KEY" ? "That key was rejected. Paste a new one." : ""); setKeyOk(false); return true;
+  };
 
   const go = async () => {
     if (!text.trim()) return;
     setBusy(true); setErr(""); setOut("");
     try {
-      const r = await fetch("/api/translate", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "Failed");
-      setOut(d.translation);
-    } catch (e) { setErr(e.message || "Translation failed. Try again."); }
+      setOut(await askAI(TRANSLATE_SYSTEM, [{ role: "user", content: text }]));
+    } catch (e) { if (!keyProblem(e)) setErr(e.message || "Translation failed. Try again."); }
     setBusy(false);
   };
   const copy = async () => { await navigator.clipboard.writeText(out); setCopied(true); setTimeout(() => setCopied(false), 1200); };
 
+  if (!keyOk) return <KeyCard back={back} note={note} done={() => setKeyOk(true)} />;
   return (
     <div className="stack page">
       <button className="back" onClick={back}>‹ Orbit</button>
@@ -359,6 +406,12 @@ function Teacher({ back }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const end = useRef(null);
+  const [keyOk, setKeyOk] = useState(!!getKey());
+  const [note, setNote] = useState("");
+  const keyProblem = (e) => {
+    if (e.message !== "BAD_KEY" && e.message !== "NO_KEY") return false;
+    setNote(e.message === "BAD_KEY" ? "That key was rejected. Paste a new one." : ""); setKeyOk(false); return true;
+  };
 
   useEffect(() => {
     try { localStorage.setItem("orbit:teach", JSON.stringify(msgs.slice(-40))); } catch {}
@@ -371,20 +424,16 @@ function Teacher({ back }) {
     const next = [...msgs, { role: "user", content: q }];
     setMsgs(next); setText(""); setBusy(true); setErr("");
     try {
-      const r = await fetch("/api/teach", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.slice(-12) }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "Failed");
-      setMsgs([...next, { role: "assistant", content: d.answer }]);
-    } catch (e) { setErr(e.message || "Something went wrong. Try again."); }
+      const answer = await askAI(TEACHER_SYSTEM, next.slice(-12), 0.5);
+      setMsgs([...next, { role: "assistant", content: answer }]);
+    } catch (e) { if (!keyProblem(e)) setErr(e.message || "Something went wrong. Try again."); }
     setBusy(false);
   };
   const onKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer:fine)").matches) { e.preventDefault(); send(); }
   };
 
+  if (!keyOk) return <KeyCard back={back} note={note} done={() => setKeyOk(true)} />;
   return (
     <div className="tpage page">
       <div className="row between">
