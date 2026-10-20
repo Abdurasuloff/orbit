@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { KeyCard } from '../components/KeyCard.jsx';
 import { askAI, getKey, TRANSLATE_SYSTEM } from '../services/openai.js';
 
@@ -9,6 +10,8 @@ export default function Translator({ back }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
+  const [showFullScreen, setShowFullScreen] = useState(false);
+  const [rotated, setRotated] = useState(false);
   const [keyOk, setKeyOk] = useState(!!getKey());
   const [note, setNote] = useState("");
   const keyProblem = (e) => {
@@ -26,6 +29,21 @@ export default function Translator({ back }) {
   };
   const copy = async () => { await navigator.clipboard.writeText(out); setCopied(true); setTimeout(() => setCopied(false), 1200); };
 
+  useEffect(() => {
+    if (!showFullScreen) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setShowFullScreen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [showFullScreen]);
+
   if (!keyOk) return <KeyCard back={back} note={note} done={() => setKeyOk(true)} />;
   return (
     <div className="stack page">
@@ -37,9 +55,27 @@ export default function Translator({ back }) {
       {err && <div className="err">{err}</div>}
       {out && (
         <div className="card stack">
-          <div className="out">{out}</div>
+          <button className="translation-preview" onClick={() => setShowFullScreen(true)} aria-label="Show translation full screen">
+            <span className="out">{out}</span>
+          </button>
           <button className="ghost" onClick={copy} style={{ alignSelf: "flex-start" }}>{copied ? "Copied" : "Copy"}</button>
         </div>
+      )}
+      {showFullScreen && createPortal(
+        <div className="translation-modal" role="dialog" aria-modal="true" aria-label="Full-screen translation">
+          <div className={`translation-modal-content${rotated ? ' rotated' : ''}`}>
+            <div className="translation-modal-actions">
+              <button className="ghost" onClick={() => setRotated((value) => !value)} aria-pressed={rotated}>
+                {rotated ? 'Normal view' : 'Rotate'}
+              </button>
+              <button className="ghost" onClick={() => setShowFullScreen(false)} aria-label="Close full-screen translation">
+                Close
+              </button>
+            </div>
+            <div className="translation-modal-text">{out}</div>
+          </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
