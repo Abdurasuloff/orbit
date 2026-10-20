@@ -74,6 +74,15 @@ button.ghost{background:var(--surface-2);color:var(--text);padding:10px 14px;fon
 .item:first-child{padding-top:0}
 .item b{display:block;font-weight:500;margin-top:5px;word-break:break-word;line-height:1.4}
 .badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent)}
+.clipboard-value{min-height:96px}
+.clipboard-privacy{margin:0;line-height:1.5}
+.clipboard-item{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.clipboard-item:first-child{padding-top:0}
+.clipboard-item:last-child{padding-bottom:0;border-bottom:0}
+.clipboard-item-content{min-width:0;flex:1}
+.clipboard-item-content b{display:block;font-size:16px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.clipboard-detail{margin-top:7px;color:var(--dim);font-size:15px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.clipboard-actions{display:flex;gap:8px;flex-shrink:0}
 .out{white-space:pre-wrap;font-size:20px;line-height:1.55;font-weight:500}
 .translation-preview{width:100%;padding:0;background:transparent;color:var(--text);text-align:left;font-weight:500}
 .translation-preview:focus-visible{outline:2px solid var(--blue);outline-offset:5px}
@@ -83,6 +92,20 @@ button.ghost{background:var(--surface-2);color:var(--text);padding:10px 14px;fon
 .translation-modal-actions{display:flex;justify-content:space-between;gap:12px;flex-shrink:0}
 .translation-modal-text{flex:1;display:grid;place-items:center;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;font-size:clamp(2rem,7vw,4rem);font-weight:600;line-height:1.35}
 .translation-modal-content.rotated .translation-modal-text{font-size:clamp(2rem,7vh,5rem)}
+.big-text-overlay{position:fixed;inset:0;z-index:1100;overflow:hidden;background:#08090c;color:#f2f3f7}
+.big-text-landscape{position:absolute;inset:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.big-text-close{align-self:flex-end;z-index:1;margin:12px}
+.big-text-viewport{position:relative;flex:1;min-width:0;min-height:0;display:flex;align-items:center;overflow:hidden}
+.big-text-static{width:100%;padding:16px;text-align:center;overflow-wrap:anywhere;font-size:clamp(2.5rem,9vw,8rem);font-weight:700;line-height:1.1}
+.big-text-viewport.scrolling{justify-content:flex-start}
+.big-text-track{display:flex;align-items:center;width:max-content;min-width:max-content;animation:big-text-scroll 18s linear infinite}
+.big-text-track span{flex:none;padding-right:1.5em;white-space:nowrap;font-size:clamp(2.5rem,9vw,8rem);font-weight:700;line-height:1.1}
+.big-text-measure{position:absolute;visibility:hidden;white-space:nowrap;font-size:clamp(2.5rem,9vw,8rem);font-weight:700;line-height:1.1}
+@keyframes big-text-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (orientation:portrait){
+  .big-text-landscape{inset:auto;top:50%;left:50%;width:100dvh;height:100vw;transform:translate(-50%,-50%) rotate(90deg)}
+}
+@media (prefers-reduced-motion:reduce){.big-text-track{animation-duration:60s}}
 .err{color:var(--danger);font-size:14px}
 .empty{text-align:center;color:var(--dim);font-size:14px;padding:12px 0;line-height:1.5}
 .page{animation:in .22s ease-out}
