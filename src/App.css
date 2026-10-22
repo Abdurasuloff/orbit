@@ -86,21 +86,27 @@ button.ghost{background:var(--surface-2);color:var(--text);padding:10px 14px;fon
 .out{white-space:pre-wrap;font-size:20px;line-height:1.55;font-weight:500}
 .translation-preview{width:100%;padding:0;background:transparent;color:var(--text);text-align:left;font-weight:500}
 .translation-preview:focus-visible{outline:2px solid var(--blue);outline-offset:5px}
-.translation-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:#08090c;color:#f2f3f7}
-.translation-modal-content{width:100%;height:100%;display:flex;flex-direction:column;gap:20px;padding:20px;overflow:auto}
-.translation-modal-content.rotated{width:100dvh;height:100vw;max-width:none;max-height:none;transform:rotate(90deg)}
+.translation-modal{position:fixed;inset:0;z-index:1000;overflow:auto;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:#08090c;color:#f2f3f7}
+.translation-modal-stage{position:relative;width:100%;height:100%;min-height:100%}
+.translation-modal-stage.rotated{height:max(100%,480px);min-height:max(100%,480px)}
+.translation-modal-content{width:100%;height:100%;display:flex;flex-direction:column;gap:20px;padding:20px}
+.translation-modal-stage.rotated .translation-modal-content{position:absolute;top:50%;left:50%;width:max(100dvh,480px);height:100vw;transform:translate(-50%,-50%) rotate(90deg)}
 .translation-modal-actions{display:flex;justify-content:space-between;gap:12px;flex-shrink:0}
-.translation-modal-text{flex:1;display:grid;place-items:center;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;font-size:clamp(2rem,7vw,4rem);font-weight:600;line-height:1.35}
-.translation-modal-content.rotated .translation-modal-text{font-size:clamp(2rem,7vh,5rem)}
+.translation-modal-text{flex:1;min-width:0;min-height:0;display:grid;place-items:center;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;font-size:clamp(2rem,7vw,4rem);font-weight:600;line-height:1.35}
+.translation-modal-stage.rotated .translation-modal-text{font-size:clamp(2rem,7vh,5rem)}
 .big-text-overlay{position:fixed;inset:0;z-index:1100;overflow:hidden;background:#08090c;color:#f2f3f7}
 .big-text-landscape{position:absolute;inset:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-.big-text-close{align-self:flex-end;z-index:1;margin:12px}
+.big-text-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:1;padding:12px}
+.big-text-close{margin:0}
+.big-text-controls{display:flex;align-items:center;gap:12px}
+.big-text-control-group{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:13px}
+.big-text-control{padding:8px 11px!important;background:var(--surface)!important;border:1px solid var(--line);color:var(--text)!important}
 .big-text-viewport{position:relative;flex:1;min-width:0;min-height:0;display:flex;align-items:center;overflow:hidden}
-.big-text-static{width:100%;padding:16px;text-align:center;overflow-wrap:anywhere;font-size:clamp(2.5rem,9vw,8rem);font-weight:700;line-height:1.1}
+.big-text-static{width:100%;padding:16px;text-align:center;overflow-wrap:anywhere;font-size:clamp(2.5rem,var(--big-text-size,9vmax),8rem);font-weight:700;line-height:1.1}
 .big-text-viewport.scrolling{justify-content:flex-start}
-.big-text-track{display:flex;align-items:center;width:max-content;min-width:max-content;animation:big-text-scroll 18s linear infinite}
-.big-text-track span{flex:none;padding-right:1.5em;white-space:nowrap;font-size:clamp(2.5rem,9vw,8rem);font-weight:700;line-height:1.1}
-.big-text-measure{position:absolute;visibility:hidden;white-space:nowrap;font-size:clamp(2.5rem,9vw,8rem);font-weight:700;line-height:1.1}
+.big-text-track{display:flex;align-items:center;width:max-content;min-width:max-content;animation:big-text-scroll var(--big-text-duration,18s) linear infinite}
+.big-text-track span{flex:none;padding-right:1.5em;white-space:nowrap;font-size:clamp(2.5rem,var(--big-text-size,9vmax),8rem);font-weight:700;line-height:1.1}
+.big-text-measure{position:absolute;visibility:hidden;white-space:nowrap;font-size:clamp(2.5rem,var(--big-text-size,9vmax),8rem);font-weight:700;line-height:1.1}
 @keyframes big-text-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media (orientation:portrait){
   .big-text-landscape{inset:auto;top:50%;left:50%;width:100dvh;height:100vw;transform:translate(-50%,-50%) rotate(90deg)}

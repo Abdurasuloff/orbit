@@ -5,8 +5,11 @@ export default function BigTextPage({ back }) {
   const [text, setText] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [overflows, setOverflows] = useState(false);
+  const [fontSize, setFontSize] = useState(9);
+  const [scrollSpeed, setScrollSpeed] = useState(4);
   const viewportRef = useRef(null);
   const measureRef = useRef(null);
+  const speedMultiplier = 0.5 + scrollSpeed * 0.25;
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -32,7 +35,7 @@ export default function BigTextPage({ back }) {
       observer.disconnect();
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isOpen, text]);
+  }, [isOpen, text, fontSize]);
 
   const showText = (event) => {
     event.preventDefault();
@@ -53,9 +56,32 @@ export default function BigTextPage({ back }) {
         <button type="submit" disabled={!text.trim()}>Show</button>
       </form>
       {isOpen && createPortal(
-        <div className="big-text-overlay" role="dialog" aria-modal="true" aria-label="Large text display">
+        <div
+          className="big-text-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Large text display"
+          style={{
+            '--big-text-size': `${fontSize}vmax`,
+            '--big-text-duration': `${18 / speedMultiplier}s`,
+          }}
+        >
           <div className="big-text-landscape">
-            <button className="ghost big-text-close" onClick={() => setIsOpen(false)} aria-label="Close display">Close</button>
+            <div className="big-text-toolbar">
+              <button className="ghost big-text-close" onClick={() => setIsOpen(false)} aria-label="Close display">Close</button>
+              <div className="big-text-controls">
+                <div className="big-text-control-group" aria-label="Font size controls">
+                  <span>Text</span>
+                  <button className="ghost big-text-control" onClick={() => setFontSize((size) => Math.max(5, size - 1))} aria-label="Decrease font size">A−</button>
+                  <button className="ghost big-text-control" onClick={() => setFontSize((size) => Math.min(16, size + 1))} aria-label="Increase font size">A+</button>
+                </div>
+                <div className="big-text-control-group" aria-label="Scroll speed controls">
+                  <span>{speedMultiplier}×</span>
+                  <button className="ghost big-text-control" onClick={() => setScrollSpeed((speed) => Math.max(0, speed - 1))} aria-label="Decrease scroll speed">Slower</button>
+                  <button className="ghost big-text-control" onClick={() => setScrollSpeed((speed) => Math.min(6, speed + 1))} aria-label="Increase scroll speed">Faster</button>
+                </div>
+              </div>
+            </div>
             <div className={`big-text-viewport${overflows ? ' scrolling' : ''}`} ref={viewportRef}>
               <span className="big-text-measure" ref={measureRef}>{text}</span>
               {overflows ? (

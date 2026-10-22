@@ -63,16 +63,18 @@ export default function Translator({ back }) {
       )}
       {showFullScreen && createPortal(
         <div className="translation-modal" role="dialog" aria-modal="true" aria-label="Full-screen translation">
-          <div className={`translation-modal-content${rotated ? ' rotated' : ''}`}>
-            <div className="translation-modal-actions">
-              <button className="ghost" onClick={() => setRotated((value) => !value)} aria-pressed={rotated}>
-                {rotated ? 'Normal view' : 'Rotate'}
-              </button>
-              <button className="ghost" onClick={() => setShowFullScreen(false)} aria-label="Close full-screen translation">
-                Close
-              </button>
+          <div className={`translation-modal-stage${rotated ? ' rotated' : ''}`}>
+            <div className="translation-modal-content">
+              <div className="translation-modal-actions">
+                <button className="ghost" onClick={() => setRotated((value) => !value)} aria-pressed={rotated}>
+                  {rotated ? 'Normal view' : 'Rotate'}
+                </button>
+                <button className="ghost" onClick={() => setShowFullScreen(false)} aria-label="Close full-screen translation">
+                  Close
+                </button>
+              </div>
+              <div className="translation-modal-text">{out}</div>
             </div>
-            <div className="translation-modal-text">{out}</div>
           </div>
         </div>,
         document.body,
