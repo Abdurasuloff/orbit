@@ -6,6 +6,7 @@ import Translator from './pages/TranslatePage.jsx';
 import Teacher from './pages/TeacherPage.jsx';
 import Clipboard from './pages/ClipboardPage.jsx';
 import BigTextPage from './pages/BigTextPage.jsx';
+import KoreanMemorizer from './pages/KoreanMemorizer.jsx';
 
 export default function App() {
   const [page, setPage] = useState('home');
@@ -22,6 +23,7 @@ export default function App() {
         {page === 'teach' && <Teacher back={home} />}
         {page === 'clip' && <Clipboard back={home} />}
         {page === 'big-text' && <BigTextPage back={home} />}
+        {page === 'korean' && <KoreanMemorizer back={home} />}
       </div>
     </>
   );

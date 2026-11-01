@@ -5,6 +5,7 @@ const I = {
   teach: <svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>,
   clip: <svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></svg>,
   bigText: <svg viewBox="0 0 24 24"><path d="M4 7V4h16v3M12 4v16M8 20h8"/></svg>,
+  korean: <svg viewBox="0 0 24 24"><path d="M5 5h14v14H5zM8 9h8M8 12h5M8 15h8"/></svg>,
 };
 
 const TOOLS = [
@@ -12,6 +13,7 @@ const TOOLS = [
   { id: "teach", label: "AI Teacher", sub: "Ask, learn simply", icon: I.teach, color: "var(--amber)" },
   { id: "clip", label: "Clipboard", sub: "Names, addresses, phones", icon: I.clip, color: "var(--mint)" },
   { id: "big-text", label: "Big Text", sub: "Show text on screen", icon: I.bigText, color: "var(--rose)" },
+  { id: "korean", label: "K-words", sub: "Everyday words · 한국어", icon: I.korean, color: "var(--mint)" },
 ];
 
 export default function HomePage({ rates, openRate, openTool }) {
