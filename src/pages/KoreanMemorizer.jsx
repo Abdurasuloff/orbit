@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import words from '../data/korean-words.json';
 
 const ALL_TOPICS = 'All topics';
@@ -56,6 +56,11 @@ export default function KoreanMemorizer({ back }) {
   const [deck, setDeck] = useState(() => words.slice(0, 20));
   const [current, setCurrent] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  const [view, setView] = useState('cards');
+  const [hiddenColumns, setHiddenColumns] = useState(() => new Set());
+  const [englishTranslations, setEnglishTranslations] = useState(() => new Set());
+  const touchStart = useRef(null);
+  const suppressClick = useRef(false);
   const card = deck[current];
   const complete = current >= deck.length;
 
@@ -85,6 +90,9 @@ export default function KoreanMemorizer({ back }) {
   };
   const changeTopic = (nextTopic) => {
     setTopic(nextTopic);
+    setView('cards');
+    setHiddenColumns(new Set());
+    setEnglishTranslations(new Set());
     updateDeck(nextTopic, count);
   };
   const shuffle = () => {
@@ -95,6 +103,56 @@ export default function KoreanMemorizer({ back }) {
     updateDeck(topic, count, true);
   };
   const topicWords = topic ? wordsForTopic(topic) : words;
+  const handleTouchStart = (event) => {
+    const touch = event.changedTouches[0];
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
+  };
+  const handleTouchEnd = (event) => {
+    if (!touchStart.current) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStart.current.x;
+    const deltaY = touch.clientY - touchStart.current.y;
+    touchStart.current = null;
+    if (Math.abs(deltaX) < 55 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    suppressClick.current = true;
+    if (deltaX < 0) next();
+    else previous();
+    window.setTimeout(() => { suppressClick.current = false; }, 400);
+  };
+  const toggleColumn = (column) => {
+    setHiddenColumns((previousHidden) => {
+      const updated = new Set(previousHidden);
+      if (updated.has(column)) updated.delete(column);
+      else updated.add(column);
+      return updated;
+    });
+  };
+  const toggleTranslationLanguage = (id) => {
+    setEnglishTranslations((previousEnglish) => {
+      const updated = new Set(previousEnglish);
+      if (updated.has(id)) updated.delete(id);
+      else updated.add(id);
+      return updated;
+    });
+  };
+  const renderColumnVisibilityButton = (column, label) => {
+    const isHidden = hiddenColumns.has(column);
+    return (
+      <button
+        className="korean-eye-button"
+        onClick={() => toggleColumn(column)}
+        aria-label={`${isHidden ? 'Show' : 'Blur'} ${label} column`}
+        aria-pressed={isHidden}
+        title={`${isHidden ? 'Show' : 'Blur'} ${label} column`}
+      >
+        {isHidden ? (
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.7 10.7 0 0 1 12 5c5.5 0 9 7 9 7a15 15 0 0 1-3.1 3.8M6.2 6.2C3.9 7.8 3 12 3 12s3.5 7 9 7a9.8 9.8 0 0 0 3-.5" /></svg>
+        ) : (
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z" /><circle cx="12" cy="12" r="2.5" /></svg>
+        )}
+      </button>
+    );
+  };
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -107,6 +165,10 @@ export default function KoreanMemorizer({ back }) {
   }, [complete]);
 
   const flipCard = (event) => {
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
     if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
     if (event.type === 'keydown') {
       event.preventDefault();
@@ -163,6 +225,46 @@ export default function KoreanMemorizer({ back }) {
       ) : (
         <>
 
+      <div className="korean-view-toggle" role="group" aria-label="Vocabulary view">
+        <button className={view === 'cards' ? 'on' : 'ghost'} onClick={() => setView('cards')}>Flashcards</button>
+        <button className={view === 'list' ? 'on' : 'ghost'} onClick={() => setView('list')}>Word list</button>
+      </div>
+
+      {view === 'list' ? (
+        <div className="korean-word-table-wrap">
+          <table className="korean-word-table">
+            <thead>
+              <tr>
+                <th scope="col"><span>Korean</span>{renderColumnVisibilityButton('korean', 'Korean')}</th>
+                <th scope="col"><span>Pronunciation</span>{renderColumnVisibilityButton('pronunciation', 'pronunciation')}</th>
+                <th scope="col"><span>Translation</span>{renderColumnVisibilityButton('translation', 'translation')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topicWords.map((word) => {
+                const isEnglish = englishTranslations.has(word.id);
+                return (
+                  <tr key={word.id}>
+                    <td lang="ko" className={`korean-table-word${hiddenColumns.has('korean') ? ' blurred' : ''}`}>{word.korean}</td>
+                    <td className={hiddenColumns.has('pronunciation') ? 'blurred' : ''}>{word.romanization}</td>
+                    <td>
+                      <button
+                        className={`korean-table-translation${hiddenColumns.has('translation') ? ' blurred' : ''}`}
+                        onClick={() => toggleTranslationLanguage(word.id)}
+                        aria-label={`Show ${isEnglish ? 'Uzbek' : 'English'} translation for ${word.korean}`}
+                        lang={isEnglish ? 'en' : 'uz'}
+                      >
+                        {isEnglish ? word.en : word.uz}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+      <>
       <div className="korean-progress">
         <div className="row between">
           <span>{complete ? deck.length : current + 1} / {deck.length}</span>
@@ -190,6 +292,8 @@ export default function KoreanMemorizer({ back }) {
             aria-label={revealed ? 'Flashcard answer. Click or press Space to hide.' : 'Flashcard. Click or press Space to reveal the answer.'}
             onClick={flipCard}
             onKeyDown={flipCard}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
             <div className="korean-card-top">
               <span className="korean-category">{card.category === 'Everyday' ? 'Everyday words' : card.category}</span>
@@ -221,9 +325,12 @@ export default function KoreanMemorizer({ back }) {
           </div>
           <div className="korean-utility">
             <button className="back" onClick={shuffle}>Shuffle cards</button>
+            <span className="dim">Swipe left for next · right for previous</span>
             <button className="back" onClick={restart}>Restart session</button>
           </div>
         </>
+      )}
+      </>
       )}
         </>
       )}
