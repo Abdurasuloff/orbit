@@ -6,6 +6,7 @@ const I = {
   clip: <svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></svg>,
   bigText: <svg viewBox="0 0 24 24"><path d="M4 7V4h16v3M12 4v16M8 20h8"/></svg>,
   korean: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"/><text x="12" y="15.5" textAnchor="middle">가</text></svg>,
+  koreanReading: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"/><text x="12" y="15.5" textAnchor="middle">나</text></svg>,
 };
 
 const TOOLS = [
@@ -14,6 +15,7 @@ const TOOLS = [
   { id: "clip", label: "Clipboard", icon: I.clip, color: "var(--mint)" },
   { id: "big-text", label: "Big Text", icon: I.bigText, color: "var(--rose)" },
   { id: "korean", label: "K-words", icon: I.korean, color: "var(--mint)" },
+  { id: "korean-reading", label: "Read Hangul", icon: I.koreanReading, color: "var(--blue)" },
 ];
 
 export default function HomePage({ rates, openRate, openTool }) {

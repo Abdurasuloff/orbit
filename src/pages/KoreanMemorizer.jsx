@@ -1,23 +1,69 @@
-import { useEffect, useRef, useState } from 'react';
-import words from '../data/korean-words.json';
+ import { useEffect, useRef, useState } from 'react';
+import words from '../data/korean-words.js';
 
-const ALL_TOPICS = 'All topics';
+const ALL_TOPICS = 'Barcha mavzular';
 const topics = [...new Set(words.map((word) => word.category))];
-const topicDetails = {
-  [ALL_TOPICS]: { icon: 'book', label: 'All topics' },
-  Greetings: { icon: 'chat', label: 'Greetings' },
-  Everyday: { icon: 'chat', label: 'Everyday words' },
-  'Food & drink': { icon: 'food', label: 'Food & drinks' },
-  'Shopping & money': { icon: 'bag', label: 'Shopping & money' },
-  Work: { icon: 'work', label: 'Work' },
-  Housing: { icon: 'home', label: 'Home & housing' },
-  Transportation: { icon: 'transit', label: 'Transportation' },
-  'Time & numbers': { icon: 'clock', label: 'Time' },
-  Numbers: { icon: 'number', label: 'Numbers' },
-  'Questions & responses': { icon: 'question', label: 'Questions' },
-  'Days & months': { icon: 'calendar', label: 'Days & months' },
-  Supermarket: { icon: 'basket', label: 'Supermarket' },
+const topicIcons = {
+  Davlatlar: 'book',
+  "Kasblar va mashg'ulotlar": 'work',
+  'Xitoy-koreys sonlari': 'number',
+  'Tub koreys sonlari': 'number',
+  'Oila, shaxslar va kishilik olmoshlari': 'chat',
+  'Binolar, inshootlar va joylar': 'home',
+  "Joylashuv va yo'nalishlar": 'transit',
+  "O'quv qurollari va jihozlar": 'book',
+  'Yemak, ichimlik va mevalar': 'food',
+  'Kiyim-kechak va ranglar': 'bag',
+  'Vaqt, sanalar va fasllar': 'calendar',
+  'Transport va harakatlanish': 'transit',
+  Sifatlar: 'question',
+  "Asosiy fe'llar va harakatlar": 'work',
+  "Muhim iboralar va grammatik qo'shimchalar": 'chat',
 };
+
+const INITIALS = ['g', 'kk', 'n', 'd', 'tt', 'r', 'm', 'b', 'pp', 's', 'ss', '', 'j', 'jj', 'ch', 'k', 't', 'p', 'h'];
+const VOWELS = ['a', 'e', 'ya', 'ye', "o'", 'e', "yo'", 'ye', 'o', 'wa', 'we', 'we', 'yo', 'u', "wo'", 'we', 'wi', 'yu', 'i', 'ui', 'i'];
+const FINALS = ['', 'k', 'k', 'ks', 'n', 'n', 'n', 't', 'l', 'k', 'm', 'l', 'l', 'l', 'p', 'l', 'm', 'p', 'ps', 't', 't', 'ng', 't', 't', 'k', 't', 'p', 't'];
+const LIAISON_INITIALS = { 1: 0, 2: 1, 4: 2, 7: 3, 8: 5, 16: 6, 17: 7, 19: 9, 20: 10, 22: 12, 23: 14, 24: 15, 25: 16, 26: 17 };
+
+function pronunciationFor(text) {
+  const syllables = Array.from(text, (character) => {
+    const code = character.charCodeAt(0);
+    if (code < 0xac00 || code > 0xd7a3) return { source: character, isHangul: false };
+
+    const value = code - 0xac00;
+    return {
+      source: character,
+      isHangul: true,
+      initial: Math.floor(value / 588),
+      vowel: Math.floor((value % 588) / 28),
+      final: value % 28,
+    };
+  });
+
+  for (let index = 0; index < syllables.length - 1; index += 1) {
+    const current = syllables[index];
+    const next = syllables[index + 1];
+    if (!current.isHangul || !next.isHangul || next.initial !== 11) continue;
+
+    const initial = LIAISON_INITIALS[current.final];
+    if (initial !== undefined) {
+      next.initial = initial;
+      current.final = 0;
+    }
+  }
+
+  return syllables.map((syllable, index) => {
+    if (!syllable.isHangul) return syllable.source;
+
+    let initial = INITIALS[syllable.initial];
+    if ([9, 10].includes(syllable.initial) && [2, 3, 6, 7, 12, 17, 20].includes(syllable.vowel)) {
+      initial = syllable.initial === 9 ? 'sh' : 'shsh';
+    }
+    const sound = `${initial}${VOWELS[syllable.vowel]}${FINALS[syllable.final]}`;
+    return index > 0 && syllables[index - 1].isHangul ? `-${sound}` : sound;
+  }).join('');
+}
 
 function TopicIcon({ name }) {
   const icons = {
@@ -58,26 +104,74 @@ export default function KoreanMemorizer({ back }) {
   const [revealed, setRevealed] = useState(false);
   const [view, setView] = useState('cards');
   const [hiddenColumns, setHiddenColumns] = useState(() => new Set());
-  const [englishTranslations, setEnglishTranslations] = useState(() => new Set());
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechMessage, setSpeechMessage] = useState('');
   const touchStart = useRef(null);
   const suppressClick = useRef(false);
+  const speechUtterance = useRef(null);
   const card = deck[current];
   const complete = current >= deck.length;
 
+  const cancelSpeech = () => {
+    speechUtterance.current = null;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+    setSpeechMessage('');
+  };
+  const readWordAloud = () => {
+    if (speechUtterance.current) {
+      cancelSpeech();
+      return;
+    }
+    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+      setSpeechMessage("Bu brauzer ovoz chiqarib o'qishni qo'llab-quvvatlamaydi.");
+      return;
+    }
+
+    setSpeechMessage('');
+    const utterance = new SpeechSynthesisUtterance(card.korean);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.8;
+    utterance.voice = window.speechSynthesis.getVoices().find((voice) => voice.lang.toLowerCase().startsWith('ko')) ?? null;
+    utterance.onstart = () => {
+      if (speechUtterance.current === utterance) setIsSpeaking(true);
+    };
+    utterance.onend = () => {
+      if (speechUtterance.current !== utterance) return;
+      speechUtterance.current = null;
+      setIsSpeaking(false);
+    };
+    utterance.onerror = (event) => {
+      if (speechUtterance.current !== utterance) return;
+      speechUtterance.current = null;
+      setIsSpeaking(false);
+      if (event.error !== 'canceled' && event.error !== 'interrupted') {
+        setSpeechMessage("So'zni ovoz chiqarib o'qib bo'lmadi.");
+      }
+    };
+    speechUtterance.current = utterance;
+    window.speechSynthesis.cancel();
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
   const showAnswer = () => setRevealed((value) => !value);
   const next = () => {
     if (current < deck.length) setCurrent((value) => value + 1);
+    cancelSpeech();
     setRevealed(false);
   };
   const previous = () => {
     if (current > 0) setCurrent((value) => value - 1);
+    cancelSpeech();
     setRevealed(false);
   };
   const restart = () => {
+    cancelSpeech();
     setCurrent(0);
     setRevealed(false);
   };
   const updateDeck = (nextTopic, nextCount, randomize = false) => {
+    cancelSpeech();
     const source = wordsForTopic(nextTopic);
     const ordered = randomize ? shuffled(source) : source;
     setDeck(ordered.slice(0, nextCount === 'all' ? ordered.length : Number(nextCount)));
@@ -89,10 +183,10 @@ export default function KoreanMemorizer({ back }) {
     updateDeck(topic, value);
   };
   const changeTopic = (nextTopic) => {
+    cancelSpeech();
     setTopic(nextTopic);
     setView('cards');
     setHiddenColumns(new Set());
-    setEnglishTranslations(new Set());
     updateDeck(nextTopic, count);
   };
   const shuffle = () => {
@@ -101,6 +195,10 @@ export default function KoreanMemorizer({ back }) {
   };
   const anotherSet = () => {
     updateDeck(topic, count, true);
+  };
+  const changeView = (nextView) => {
+    cancelSpeech();
+    setView(nextView);
   };
   const topicWords = topic ? wordsForTopic(topic) : words;
   const handleTouchStart = (event) => {
@@ -127,23 +225,15 @@ export default function KoreanMemorizer({ back }) {
       return updated;
     });
   };
-  const toggleTranslationLanguage = (id) => {
-    setEnglishTranslations((previousEnglish) => {
-      const updated = new Set(previousEnglish);
-      if (updated.has(id)) updated.delete(id);
-      else updated.add(id);
-      return updated;
-    });
-  };
   const renderColumnVisibilityButton = (column, label) => {
     const isHidden = hiddenColumns.has(column);
     return (
       <button
         className="korean-eye-button"
         onClick={() => toggleColumn(column)}
-        aria-label={`${isHidden ? 'Show' : 'Blur'} ${label} column`}
+        aria-label={`${isHidden ? "Ko'rsatish" : 'Yashirish'}: ${label}`}
         aria-pressed={isHidden}
-        title={`${isHidden ? 'Show' : 'Blur'} ${label} column`}
+        title={`${isHidden ? "Ko'rsatish" : 'Yashirish'}: ${label}`}
       >
         {isHidden ? (
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.7 10.7 0 0 1 12 5c5.5 0 9 7 9 7a15 15 0 0 1-3.1 3.8M6.2 6.2C3.9 7.8 3 12 3 12s3.5 7 9 7a9.8 9.8 0 0 0 3-.5" /></svg>
@@ -164,6 +254,8 @@ export default function KoreanMemorizer({ back }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [complete]);
 
+  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+
   const flipCard = (event) => {
     if (suppressClick.current) {
       suppressClick.current = false;
@@ -183,40 +275,42 @@ export default function KoreanMemorizer({ back }) {
       <header className="korean-header">
         <div>
           {topic && (
-            <button className="korean-topics-back" onClick={() => setTopic(null)} aria-label="Back to topics">
-              ‹ Topics
+            <button className="korean-topics-back" onClick={() => setTopic(null)} aria-label="Mavzularga qaytish">
+              ‹ Mavzular
             </button>
           )}
-          <h2>{topic ? topicDetails[topic]?.label ?? topic : 'K-words'}</h2>
+          <h2>{topic || 'K-words'}</h2>
         </div>
         {topic && (
           <label className="korean-count">
-            <span className="dim">Cards</span>
-            <select value={count === 'all' || Number(count) > topicWords.length ? 'all' : count} onChange={(event) => changeCount(event.target.value)} aria-label="Number of cards">
+            <span className="dim">Kartochkalar</span>
+            <select value={count === 'all' || Number(count) > topicWords.length ? 'all' : count} onChange={(event) => changeCount(event.target.value)} aria-label="Kartochkalar soni">
               {[10, 20, 30].map((value) => (
-                <option key={value} value={value} disabled={value > topicWords.length}>{value} cards</option>
+                <option key={value} value={value} disabled={value > topicWords.length}>{value} ta</option>
               ))}
-              <option value="all">All {topic === ALL_TOPICS ? 'cards' : 'in topic'}</option>
+              <option value="all">{topic === ALL_TOPICS ? 'Barchasi' : 'Mavzudagilarning barchasi'}</option>
             </select>
           </label>
         )}
       </header>
 
       {!topic ? (
-        <section className="korean-topics" aria-label="Vocabulary topics">
+        <section className="korean-topics" aria-label="Lug'at mavzulari">
           <div className="korean-topics-heading">
-            <strong>Choose a topic</strong>
-            <span className="dim">{words.length} words</span>
+            <strong>Mavzuni tanlang</strong>
+            <span className="dim">{words.length} ta kartochka</span>
           </div>
           <div className="korean-topic-list">
             {[ALL_TOPICS, ...topics].map((item) => {
               const topicCount = item === ALL_TOPICS ? words.length : wordsForTopic(item).length;
-              const details = topicDetails[item] ?? { icon: '📚', label: item };
+              const details = item === ALL_TOPICS
+                ? { icon: 'book', label: ALL_TOPICS }
+                : { icon: topicIcons[item] ?? 'book', label: item };
               return (
                 <button key={item} className="korean-topic" onClick={() => changeTopic(item)}>
                   <TopicIcon name={details.icon} />
                   <strong>{details.label}</strong>
-                  <small>{topicCount} words</small>
+                  <small>{topicCount} ta kartochka</small>
                 </button>
               );
             })}
@@ -225,41 +319,30 @@ export default function KoreanMemorizer({ back }) {
       ) : (
         <>
 
-      <div className="korean-view-toggle" role="group" aria-label="Vocabulary view">
-        <button className={view === 'cards' ? 'on' : 'ghost'} onClick={() => setView('cards')}>Flashcards</button>
-        <button className={view === 'list' ? 'on' : 'ghost'} onClick={() => setView('list')}>Word list</button>
+      <div className="korean-view-toggle" role="group" aria-label="Lug'at ko'rinishi">
+        <button className={view === 'cards' ? 'on' : 'ghost'} onClick={() => changeView('cards')}>Kartochkalar</button>
+        <button className={view === 'list' ? 'on' : 'ghost'} onClick={() => changeView('list')}>So'zlar ro'yxati</button>
       </div>
+      <p className="korean-pronunciation-note dim">Talaffuz o'zbekcha harflarda taxminiy yozilgan.</p>
 
       {view === 'list' ? (
         <div className="korean-word-table-wrap">
           <table className="korean-word-table">
             <thead>
               <tr>
-                <th scope="col"><span>Korean</span>{renderColumnVisibilityButton('korean', 'Korean')}</th>
-                <th scope="col"><span>Pronunciation</span>{renderColumnVisibilityButton('pronunciation', 'pronunciation')}</th>
-                <th scope="col"><span>Translation</span>{renderColumnVisibilityButton('translation', 'translation')}</th>
+                <th scope="col"><span>Koreyscha</span>{renderColumnVisibilityButton('korean', 'koreyscha')}</th>
+                <th scope="col"><span>Talaffuzi (o'zbekcha)</span>{renderColumnVisibilityButton('pronunciation', 'talaffuz')}</th>
+                <th scope="col"><span>O'zbekcha ma'nosi</span>{renderColumnVisibilityButton('translation', "o'zbekcha ma'no")}</th>
               </tr>
             </thead>
             <tbody>
-              {topicWords.map((word) => {
-                const isEnglish = englishTranslations.has(word.id);
-                return (
-                  <tr key={word.id}>
-                    <td lang="ko" className={`korean-table-word${hiddenColumns.has('korean') ? ' blurred' : ''}`}>{word.korean}</td>
-                    <td className={hiddenColumns.has('pronunciation') ? 'blurred' : ''}>{word.romanization}</td>
-                    <td>
-                      <button
-                        className={`korean-table-translation${hiddenColumns.has('translation') ? ' blurred' : ''}`}
-                        onClick={() => toggleTranslationLanguage(word.id)}
-                        aria-label={`Show ${isEnglish ? 'Uzbek' : 'English'} translation for ${word.korean}`}
-                        lang={isEnglish ? 'en' : 'uz'}
-                      >
-                        {isEnglish ? word.en : word.uz}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {topicWords.map((word) => (
+                <tr key={word.id}>
+                  <td lang="ko" className={`korean-table-word${hiddenColumns.has('korean') ? ' blurred' : ''}`}>{word.korean}</td>
+                  <td className={hiddenColumns.has('pronunciation') ? 'blurred' : ''}>{pronunciationFor(word.korean)}</td>
+                  <td lang="uz" className={hiddenColumns.has('translation') ? 'blurred' : ''}>{word.uz}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -268,9 +351,9 @@ export default function KoreanMemorizer({ back }) {
       <div className="korean-progress">
         <div className="row between">
           <span>{complete ? deck.length : current + 1} / {deck.length}</span>
-          <span className="dim">{complete ? 'Complete' : 'Progress'}</span>
+          <span className="dim">{complete ? 'Yakunlandi' : 'Jarayon'}</span>
         </div>
-        <div className="korean-progress-track" role="progressbar" aria-label="Session progress" aria-valuemin="0" aria-valuemax={deck.length} aria-valuenow={current}>
+        <div className="korean-progress-track" role="progressbar" aria-label="Mashg'ulot jarayoni" aria-valuemin="0" aria-valuemax={deck.length} aria-valuenow={current}>
           <span style={{ width: `${(current / deck.length) * 100}%` }} />
         </div>
       </div>
@@ -278,10 +361,10 @@ export default function KoreanMemorizer({ back }) {
       {complete ? (
         <section className="card korean-complete" aria-live="polite">
           <span className="korean-complete-mark" aria-hidden="true">✓</span>
-          <h3>Nice work!</h3>
-          <p className="dim">You finished all {deck.length} cards. Take a short break, or give them another round.</p>
-          <button onClick={restart}>Start again</button>
-          <button className="ghost" onClick={anotherSet}>Practise another set</button>
+          <h3>Barakalla!</h3>
+          <p className="dim">{deck.length} ta kartochkani tugatdingiz. Yana bir marta takrorlang yoki yangi to'plamni boshlang.</p>
+          <button onClick={restart}>Qaytadan boshlash</button>
+          <button className="ghost" onClick={anotherSet}>Boshqa to'plam</button>
         </section>
       ) : (
         <>
@@ -289,7 +372,7 @@ export default function KoreanMemorizer({ back }) {
             className={`card korean-card${revealed ? ' revealed' : ''}`}
             role="button"
             tabIndex={0}
-            aria-label={revealed ? 'Flashcard answer. Click or press Space to hide.' : 'Flashcard. Click or press Space to reveal the answer.'}
+            aria-label={revealed ? "Javob ko'rsatilgan. Yashirish uchun bosing yoki Space tugmasini bosing." : "Javobni ko'rish uchun bosing yoki Space tugmasini bosing."}
             onClick={flipCard}
             onKeyDown={flipCard}
             onTouchStart={handleTouchStart}
@@ -297,36 +380,45 @@ export default function KoreanMemorizer({ back }) {
           >
             <div className="korean-card-top">
               <span className="korean-category">{card.category === 'Everyday' ? 'Everyday words' : card.category}</span>
-              <span className="dim">Tap card or press Space</span>
+              <span className="dim">Bosing yoki Space tugmasini bosing</span>
             </div>
             <div className="korean-word">
               <strong lang="ko">{card.korean}</strong>
-              <span>{card.romanization}</span>
+              <span>{pronunciationFor(card.korean)}</span>
             </div>
             {revealed && (
               <div className="korean-answer">
-                <div className="korean-translations">
-                  <div><span>O'zbekcha</span><strong>{card.uz}</strong></div>
-                  <div><span>English</span><strong>{card.en}</strong></div>
-                </div>
-                <div className="korean-example">
-                  <span className="korean-example-label">Example</span>
-                  <strong lang="ko">{card.example.korean}</strong>
-                  <p>{card.example.en}</p>
-                  <p>{card.example.uz}</p>
+                <div className="korean-meaning">
+                  <span>O'zbekcha ma'nosi</span>
+                  <strong lang="uz">{card.uz}</strong>
                 </div>
               </div>
             )}
           </div>
+          <div className="korean-speech-control">
+            <button
+              className="ghost korean-speech-button"
+              onClick={readWordAloud}
+              aria-label={isSpeaking ? "Talaffuzni to'xtatish" : "Koreyscha so'zni ovoz chiqarib o'qish"}
+              aria-pressed={isSpeaking}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                {isSpeaking
+                  ? <path d="M8 5h3v14H8zM15 5h3v14h-3z" />
+                  : <><path d="M4 10v4h4l5 4V6l-5 4z" /><path d="M16 9a5 5 0 0 1 0 6M18.5 6.5a8.5 8.5 0 0 1 0 11" /></>}
+              </svg>
+              {isSpeaking ? "To'xtatish" : "Ovoz chiqarib o'qish"}
+            </button>
+            {speechMessage && <span className="korean-speech-message" role="status">{speechMessage}</span>}
+          </div>
           <div className="korean-actions">
-            <button className="ghost" onClick={previous} disabled={current === 0}>Previous</button>
-            <button onClick={showAnswer}>{revealed ? 'Hide Answer' : 'Reveal Answer'}</button>
-            {revealed && <button className="ghost" onClick={next}>Next Card</button>}
+            <button className="ghost" onClick={previous} disabled={current === 0}>Oldingi</button>
+            <button onClick={showAnswer}>{revealed ? "Javobni yashirish" : "Javobni ko'rsatish"}</button>
+            {revealed && <button className="ghost" onClick={next}>Keyingisi</button>}
           </div>
           <div className="korean-utility">
-            <button className="back" onClick={shuffle}>Shuffle cards</button>
-            <span className="dim">Swipe left for next · right for previous</span>
-            <button className="back" onClick={restart}>Restart session</button>
+            <button className="back" onClick={shuffle}>Aralashtirish</button>
+            <button className="back" onClick={restart}>Boshidan boshlash</button>
           </div>
         </>
       )}

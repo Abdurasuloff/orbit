@@ -194,11 +194,8 @@ button.ghost{background:var(--surface-2);color:var(--text);padding:10px 14px;fon
 .korean-word-table th .korean-eye-button{margin-top:3px}
 .korean-word-table td{padding:12px 8px;vertical-align:middle;border-bottom:1px solid var(--line);line-height:1.4}
 .korean-word-table tr:last-child td{border-bottom:0}
-.korean-table-word{font-size:16px;font-weight:600;white-space:nowrap}
+.korean-table-word{font-size:16px;font-weight:600;white-space:normal}
 .korean-word-table td.blurred{filter:blur(5px);user-select:none}
-.korean-table-translation{padding:0;background:transparent;color:var(--text);font-size:13px;font-weight:400;text-align:left;line-height:1.4}
-.korean-table-translation.blurred{filter:blur(5px);user-select:none}
-.korean-table-translation:active{transform:none}
 .korean-eye-button{display:grid;place-items:center;width:34px;height:34px;padding:7px;border-radius:10px;background:transparent;color:var(--mint)}
 .korean-eye-button:hover{background:rgba(79,224,181,.1)}
 .korean-eye-button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -213,13 +210,14 @@ button.ghost{background:var(--surface-2);color:var(--text);padding:10px 14px;fon
 .korean-word strong{font-size:clamp(2.6rem,13vw,4.2rem);line-height:1.2;letter-spacing:-.03em}
 .korean-word span{font-size:17px;color:var(--dim)}
 .korean-answer{display:flex;flex-direction:column;gap:18px;border-top:1px solid var(--line);padding-top:18px;cursor:auto}
-.korean-translations{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.korean-translations div{display:flex;flex-direction:column;gap:5px}
-.korean-translations span,.korean-example-label{color:var(--dim);font-size:12px}
-.korean-translations strong{font-size:16px;line-height:1.4}
-.korean-example{display:flex;flex-direction:column;gap:7px;padding:14px;border-radius:15px;background:rgba(255,255,255,.035)}
-.korean-example strong{font-size:18px;line-height:1.5}
-.korean-example p{margin:0;color:var(--dim);font-size:14px;line-height:1.5}
+.korean-meaning{display:flex;flex-direction:column;gap:5px}
+.korean-meaning span{color:var(--dim);font-size:12px}
+.korean-meaning strong{font-size:16px;line-height:1.4}
+.korean-pronunciation-note{margin:-12px 0 0;font-size:12px}
+.korean-speech-control{display:flex;flex-direction:column;align-items:center;gap:8px}
+.korean-speech-button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px}
+.korean-speech-button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.korean-speech-message{color:var(--danger);font-size:12px;text-align:center;line-height:1.5}
 .korean-actions{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:8px}
 .korean-actions button{padding:12px 8px;font-size:14px}
 .korean-utility{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
@@ -229,6 +227,61 @@ button.ghost{background:var(--surface-2);color:var(--text);padding:10px 14px;fon
 .korean-complete h3{margin:2px 0 0;font-size:23px}
 .korean-complete p{margin:0 0 6px;line-height:1.55}
 .korean-complete button{width:100%}
+.reading-page{display:flex;flex-direction:column;gap:18px}
+.reading-header{display:flex;align-items:center}
+.reading-title{display:flex;align-items:center;gap:13px}
+.reading-title>span{display:grid;place-items:center;width:54px;height:54px;border:1px solid rgba(124,156,255,.25);border-radius:16px;background:rgba(124,156,255,.1);color:var(--blue);font-size:22px;font-weight:700}
+.reading-header h2{font-size:22px}
+.reading-header p{margin:6px 0 0}
+.reading-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;border-radius:14px;background:rgba(255,255,255,.05)}
+.reading-tabs button,.reading-mode-list button{padding:10px 8px;background:transparent;color:var(--dim);font-size:13px;line-height:1.3}
+.reading-tabs button.on,.reading-mode-list button.on{background:var(--surface-2);color:var(--text)}
+.reading-lesson,.reading-practice{display:flex;flex-direction:column;gap:16px}
+.reading-intro,.reading-lesson-card{display:flex;flex-direction:column;gap:10px}
+.reading-intro h3,.reading-lesson-card h3,.reading-result h3{margin:0;font-size:19px;line-height:1.35}
+.reading-intro>p,.reading-lesson-card>p{margin:0;font-size:14px;line-height:1.6;color:var(--dim)}
+.reading-eyebrow{color:var(--mint);font-size:12px;font-weight:600}
+.reading-pronunciation-note{padding-top:8px;border-top:1px solid var(--line);font-size:12px!important}
+.reading-section{display:flex;flex-direction:column;gap:10px}
+.reading-section-heading h3{margin:0;font-size:17px}
+.reading-section-heading p{margin:5px 0 0;font-size:12px;line-height:1.5}
+.reading-letter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.reading-letter{min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 5px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:center}
+.reading-letter>strong{font-size:30px;line-height:1.2}
+.reading-letter>span{font-size:12px;font-weight:600}
+.reading-letter>small{min-height:14px;color:var(--dim);font-size:10px;overflow-wrap:anywhere}
+.reading-example{display:flex;align-items:center;gap:5px;margin-top:3px;padding-top:6px;border-top:1px solid var(--line);color:var(--dim);font-size:11px}
+.reading-example span:first-child{color:var(--mint);font-size:16px;font-weight:600}
+.reading-block-examples{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.reading-block-examples>div{display:flex;flex-direction:column;gap:5px;padding:11px;border-radius:12px;background:rgba(255,255,255,.04)}
+.reading-block-examples strong{font-size:16px}
+.reading-block-examples span{color:var(--dim);font-size:12px}
+.reading-ending-list{display:flex;flex-direction:column}
+.reading-ending-list>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.reading-ending-list>div:last-child{border-bottom:0}
+.reading-ending-list strong{font-size:14px;letter-spacing:.03em}
+.reading-ending-list span{flex-shrink:0;color:var(--dim);font-size:12px}
+.reading-ending-list b{color:var(--text)}
+.reading-mode-list{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.025)}
+.reading-mode-list button{border:1px solid transparent;border-radius:11px}
+.reading-progress{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.reading-progress-track{height:7px;overflow:hidden;border-radius:99px;background:var(--surface-2)}
+.reading-progress-track span{display:block;height:100%;border-radius:inherit;background:var(--mint);transition:width .2s ease}
+.reading-question{min-height:224px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+.reading-prompt{font-size:clamp(4rem,20vw,6.25rem);font-weight:600;line-height:1.2}
+.reading-question>p{margin:0;line-height:1.5}
+.reading-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.reading-choice{min-height:54px;padding:12px 9px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.reading-choice:not(:disabled):hover{border-color:var(--blue);background:var(--surface-2)}
+.reading-choice.correct{border-color:rgba(79,224,181,.55);background:rgba(79,224,181,.12);color:var(--mint);opacity:1}
+.reading-choice.incorrect{border-color:rgba(255,122,133,.55);background:rgba(255,122,133,.1);color:var(--danger);opacity:1}
+.reading-feedback{display:flex;flex-direction:column;gap:10px}
+.reading-feedback p{margin:0;color:var(--mint);font-size:14px;font-weight:600}
+.reading-result{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:30px 22px}
+.reading-result-score{color:var(--mint);font-size:52px;font-weight:700;letter-spacing:-.04em}
+.reading-result-score small{color:var(--dim);font-size:20px;font-weight:500;letter-spacing:normal}
+.reading-result p{margin:0 0 6px}
+.reading-result button{width:100%}
 @media(min-width:600px){
   .korean-page{gap:22px}
   .korean-card{min-height:390px;padding:26px}
@@ -236,5 +289,7 @@ button.ghost{background:var(--surface-2);color:var(--text);padding:10px 14px;fon
   .korean-topic{min-height:142px;padding:16px}
   .korean-topic-icon{width:40px;height:40px}
   .korean-topic strong{font-size:15px}
+  .reading-page{gap:22px}
+  .reading-letter-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
